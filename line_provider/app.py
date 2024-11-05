@@ -1,10 +1,11 @@
 import decimal
 import enum
 import time
-from typing import Optional
 
 from fastapi import FastAPI, Path, HTTPException
 from pydantic import BaseModel
+
+from event_publisher import publish_event
 
 
 class EventState(enum.Enum):
@@ -15,9 +16,9 @@ class EventState(enum.Enum):
 
 class Event(BaseModel):
     event_id: str
-    coefficient: Optional[decimal.Decimal] = None
-    deadline: Optional[int] = None
-    state: Optional[EventState] = None
+    coefficient: decimal.Decimal | None = None
+    deadline: int | None = None
+    state: EventState | None = None
 
 
 events: dict[str, Event] = {
@@ -30,19 +31,26 @@ app = FastAPI()
 
 
 @app.put('/event')
-async def create_event(event: Event):
-    if event.event_id not in events:
-        events[event.event_id] = event
-        return {}
+async def create_or_update_event(event: Event):
+    is_status_update = False
+    if event.event_id in events:
+        current_event = events[event.event_id]
+        if current_event.state != event.state:
+            is_status_update = True
 
-    for p_name, p_value in event.dict(exclude_unset=True).items():
-        setattr(events[event.event_id], p_name, p_value)
+    events[event.event_id] = event
 
-    return {}
+    if is_status_update:
+        event_data = {
+            "event_id": event.event_id,
+            "status": event.state.value
+        }
+        await publish_event(event_data)
+    return events[event.event_id]
 
 
 @app.get('/event/{event_id}')
-async def get_event(event_id: str = Path(default=None)):
+async def get_event(event_id: str = Path(...)):
     if event_id in events:
         return events[event_id]
 
@@ -50,5 +58,6 @@ async def get_event(event_id: str = Path(default=None)):
 
 
 @app.get('/events')
-async def get_events():
+async def get_events() -> list[Event]:
     return list(e for e in events.values() if time.time() < e.deadline)
+

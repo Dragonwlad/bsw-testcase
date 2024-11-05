@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "bsw-test-line-provider"
+version = "0.1.0"
+description = ""
+authors = ["Dragonwlad <appletouchdragon@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.15"
+fastapi = "0.115.4"
+asyncpg = "^0.30.0"
+alembic = "^1.13.3"
+uvicorn = "^0.32.0"
+python-dotenv = "^1.0.1"
+greenlet = "^3.1.1"
+aio-pika = "^9.4.3"
+cachetools = "^5.5.0"
+aiohttp = "^3.10.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
